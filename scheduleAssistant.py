@@ -1,15 +1,15 @@
 # Import standard libraries
-from time import sleep
-from datetime import datetime
-import sys
-import os
-import json
 import csv
 import itertools
+import json
 import math
+import sys
+import time
+import os
+from datetime import datetime
 
 # Import pre-req libraries
-pipInstall = {"selenium": "selenium", "tabula": "tabula-py"}
+pipInstall = {"tabula": "tabula-py"}
 try:
 	from selenium import webdriver
 	from selenium.webdriver.support.ui import WebDriverWait
@@ -20,7 +20,8 @@ try:
 	from tabula import read_pdf
 except ModuleNotFoundError as error:
 	lib = error.msg.split("'")[1]
-	sys.exit(f"ERROR: {lib} no encontrado\nInstalar con el comando 'pip install {pipInstall[lib]}'")
+	command = lib if lib not in pipInstall else pipInstall[lib]
+	sys.exit(f"ERROR: Libreria {lib} no encontrada\nInstalar con el comando 'pip install {command}'")
 
 class ScheduleAssistant:
 	timeout = 30
@@ -82,7 +83,7 @@ class ScheduleAssistant:
 		btn = [i for i in buttons if len(i.find_elements_by_tag_name("span")) == 1][0]
 		btn.click()
 
-		sleep(5)
+		time.sleep(5)
 
 		form = self.br.find_element_by_tag_name("form")
 		field = [i for i in form.find_elements_by_tag_name("input") if i.get_attribute("type") == "password"][0]
@@ -108,17 +109,17 @@ class ScheduleAssistant:
 		dtChecked = datetime.now()
 
 		while not os.path.exists(self.downDir):
-			sleep(0.1)
+			time.sleep(0.1)
 		
 		fname = os.path.join(self.downDir, list(os.walk(self.downDir))[0][2][0])
 		
 		while os.stat(fname).st_size == 0:
-			sleep(0.1)
+			time.sleep(0.1)
 
 		os.rename(fname, self.pdfName)
 
 		while len(list(os.walk(self.downDir))[0][2]) > 0:
-			sleep(0.1)
+			time.sleep(0.1)
 
 		os.rmdir(self.downDir)
 
