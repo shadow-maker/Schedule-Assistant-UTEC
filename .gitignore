@@ -1,0 +1,13 @@
+# Mac
+.DS_Store
+
+# Python
+__pycache__/
+env/
+
+# Temp files
+geckodriver.log
+.down/
+horarios.pdf
+horarios.csv
+horarios.json
