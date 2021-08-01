@@ -36,6 +36,7 @@ class ScheduleAssistant:
 	# BOOLS
 	#
 
+	logCurrentProcess = True
 	saveDataCSV = True
 	saveDataJSON = True
 
@@ -76,7 +77,7 @@ class ScheduleAssistant:
 		self.log("")
 
 	def initWebdriver(self):
-		self.log(">Initializing web driver...")
+		self.log("Initializing web driver...")
 		profile = webdriver.FirefoxProfile()
 
 		profile.set_preference("browser.download.dir", os.path.join(os.getcwd(), self.downDir));
@@ -100,14 +101,15 @@ class ScheduleAssistant:
 	#
 
 	def log(self, msg):
-		sys.stdout.write("\r" + (" " * os.get_terminal_size().columns))
-		sys.stdout.write("\r" + msg)
-		sys.stdout.flush()
+		if self.logCurrentProcess:
+			sys.stdout.write("\r" + (" " * os.get_terminal_size().columns))
+			sys.stdout.write("\r>" + msg)
+			sys.stdout.flush()
 	
 	def saveCSV(self, data=[]):
 		if self.saveDataCSV:
 			data = self.scheduleDataTable if len(data) == 0 else data
-			self.log(">Saving table as CSV...")
+			self.log("Saving table as CSV...")
 			with open(self.csvName, "w") as file:
 				writer = csv.writer(file)
 				for line in data:
@@ -116,33 +118,47 @@ class ScheduleAssistant:
 	def saveJSON(self, data={}):
 		if self.saveDataJSON:
 			data = self.scheduleDataDict if len(data) == 0 else data
-			self.log(">Saving dictionary as JSON...")
+			self.log("Saving dictionary as JSON...")
 			with open(self.jsonName, "w") as file:
 				json.dump(self.scheduleDataDict, file, indent=4, ensure_ascii=False)
-	
+
 	#
-	# WEB SCRAPER FUNCS
+	# WAIT FUNCS
 	#
 
 	def waitForPageLoad(self, elementToCheck, by=By.CLASS_NAME):
-		#self.log(">Waiting for page to finish loading...")
 		try: # Wait for page to finish loading
 			elementPresent = EC.presence_of_element_located((by, elementToCheck))
 			WebDriverWait(self.br, self.timeout).until(elementPresent)
 		except TimeoutException:
-			print(">Loading took too much time!")
+			print("ERROR: Timeout!")
 			return False
 		return True
 	
+	def waitUntilTrue(self, func, timeElapsed=0, interval=0.1):
+		if func():
+			return True
+		elif timeElapsed > self.timeout:
+			print("ERROR: Timeout!")
+			return False
+		time.sleep(interval)
+		return self.waitUntilTrue(func, timeElapsed + interval)
+
+	#
+	# WEB SCRAPER FUNCS
+	#
+	
 	def login(self, email="", passw=""):
-		self.log(">Logging in...")
+		self.log("Logging in...")
 		email = self.email if email == "" else email
 		passw = self.passw if passw == "" else passw
 		self.br.get(self.homePage)
 		btn = self.br.find_element_by_tag_name("button")
 		btn.click()
 
-		self.waitForPageLoad("form", By.TAG_NAME)
+		if not self.waitForPageLoad("form", By.TAG_NAME):
+			print("Could not finish logging in")
+			return None
 
 		form = self.br.find_element_by_tag_name("form")
 		field = [i for i in form.find_elements_by_tag_name("input") if i.get_attribute("type") == "email"][0]
@@ -163,34 +179,34 @@ class ScheduleAssistant:
 		btn.click()
 
 	def downloadScheduleData(self):
-		self.log(">Navigating to data download page...")
+		self.log("Navigating to data download page...")
 		self.br.get(self.downloadPage)
-		self.waitForPageLoad("report", By.ID)
+		if not self.waitForPageLoad("report", By.ID):
+			return None
 
 		btn = self.br.find_element_by_id("report")
-
+		
 		parentWindow = self.br.window_handles[0]
 
+		self.log("Downloading schedule data...")
 		btn.click()
-
-		self.log(">Downloading schedule data...")
 
 		WebDriverWait(self.br, self.timeout).until(EC.number_of_windows_to_be(2))
 
 		dtChecked = datetime.now()
 
-		while not os.path.exists(self.downDir):
-			time.sleep(0.1)
-		
 		fname = os.path.join(self.downDir, "pdf")
-		
-		while os.stat(fname).st_size == 0:
-			time.sleep(0.1)
 
+		if not self.waitUntilTrue(lambda : os.path.exists(fname)):
+			return None
+
+		if not self.waitUntilTrue(lambda : os.stat(fname).st_size > 0):
+			return None
+		
 		os.rename(fname, self.pdfName)
 
-		while len(list(os.walk(self.downDir))[0][2]) > 0:
-			time.sleep(0.1)
+		if not self.waitUntilTrue(lambda : len(list(os.walk(self.downDir))[0][2]) == 0):
+			return None
 
 		os.rmdir(self.downDir)
 
@@ -205,7 +221,7 @@ class ScheduleAssistant:
 	#
 	
 	def pdfToTable(self):
-		self.log(">Parsing table from pdf into python matrix...")
+		self.log("Parsing table from pdf into python matrix...")
 		tables = read_pdf("horarios.pdf", pages="all")
 
 		self.scheduleDataTable = list(itertools.chain(*[[tuple(table.columns)] + list(zip(*[[(i.replace("\r", " ") if type(i) == str else ("" if math.isnan(i) else i)) for i in table[col].to_list()] for col in table])) for table in tables]))
@@ -214,7 +230,7 @@ class ScheduleAssistant:
 		return self.scheduleDataTable
 
 	def tableToDict(self):
-		self.log(">Parsing matrix into data dictionary...")
+		self.log("Parsing matrix into data dictionary...")
 		keys = ("cod", "nom", "prof", "malla", "tipo", "mod", "sec", "ses", "hora", "tipo", "ubic", "vac", "mat")
 		mat = [dict(zip(keys, i)) for i in self.scheduleDataTable[1:]]
 
