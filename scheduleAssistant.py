@@ -6,6 +6,7 @@ import math
 import sys
 import time
 import os
+import platform
 from datetime import datetime
 
 # Import pre-req third party libraries
@@ -77,25 +78,48 @@ class ScheduleAssistant:
 	def __del__(self):
 		self.log("")
 
-	def initWebdriver(self):
+	def initWebdriver(self, selBrowser="C"):
 		self.log("Initializing web driver...")
-		profile = webdriver.FirefoxProfile()
 
-		profile.set_preference("browser.download.dir", os.path.join(os.getcwd(), self.downDir));
-		profile.set_preference("browser.download.folderList", 2);
-		profile.set_preference("browser.helperApps.neverAsk.saveToDisk", "application/pdf,application/x-pdf");
-		profile.set_preference("browser.download.manager.showWhenStarting", False);
-		profile.set_preference("browser.helperApps.neverAsk.openFile", "application/pdf,application/x-pdf");
-		profile.set_preference("browser.helperApps.alwaysAsk.force", False);
-		profile.set_preference("browser.download.manager.useWindow", False);
-		profile.set_preference("browser.download.manager.focusWhenStarting", False);
-		profile.set_preference("browser.download.manager.alertOnEXEOpen", False);
-		profile.set_preference("browser.download.manager.showAlertOnComplete", False);
-		profile.set_preference("browser.download.manager.closeWhenDone", True);
-		profile.set_preference("pdfjs.disabled", True);
+		downDir = os.path.join(os.getcwd(), self.downDir)
+		selBrowser = selBrowser.upper()
 
-		path = os.path.join(os.getcwd(), self.geckodriverName)
-		self.br = webdriver.Firefox(executable_path=path, firefox_profile=profile)
+		if selBrowser == "C":
+			options = webdriver.ChromeOptions()
+			options.add_experimental_option("prefs", {
+				"download.default_directory": downDir,
+				"download.prompt_for_download": False,
+				"download.directory_upgrade": True,
+				"plugins.always_open_pdf_externally": True
+			})
+		elif selBrowser == "F":
+			options = webdriver.FirefoxOptions()
+			options.set_preference("browser.download.folderList", 2)
+			options.set_preference("browser.download.dir", downDir)
+			options.set_preference("browser.download.useDownloadDir", True)
+			options.set_preference("browser.helperApps.neverAsk.saveToDisk", "application/pdf,application/x-pdf")
+			options.set_preference("browser.download.manager.useWindow", False)
+			options.set_preference("browser.download.manager.focusWhenStarting", False)
+			options.set_preference("browser.download.manager.alertOnEXEOpen", False)
+			options.set_preference("browser.download.manager.showAlertOnComplete", False)
+			options.set_preference("browser.download.manager.closeWhenDone", True)
+			options.set_preference("pdfjs.disabled", True)
+		else:
+			print("\nERROR: browser can only be 'C' (Chrome) or 'F' (Firefox)")
+			return None
+
+		instBr = lambda b, p, o : webdriver.Chrome(executable_path=p, options=o) if b == "C" else webdriver.Firefox(executable_path=p, options=o)
+
+		driver = {"C": self.chromedriverName, "F": self.geckodriverName}[selBrowser]
+		driver += ".exe" if platform.system() == "Windows" and ".exe" not in driver else ""
+		try:
+			self.br = instBr(selBrowser.upper(), driver, options)
+		except:
+			path = os.path.join(os.getcwd(), driver)
+			if not os.path.exists(path):
+				print(f"\nERROR: Required webdriver with name {driver} not found in PATH or in current working directory")
+				return None
+			self.br = instBr(selBrowser.upper(), path, options)
 	
 	#
 	# LOG FUNCS
@@ -190,7 +214,7 @@ class ScheduleAssistant:
 
 		btn = self.br.find_element_by_id("report")
 
-		parentWindow = self.br.window_handles[0]
+		homeWindow = self.br.window_handles[0]
 
 		self.log("Downloading schedule data...")
 		btn.click()
@@ -214,7 +238,7 @@ class ScheduleAssistant:
 
 		os.rmdir(self.downDir)
 
-		popup = [x for x in self.br.window_handles if x != parentWindow][0]
+		popup = [win for win in self.br.window_handles if win != homeWindow][0]
 		self.br.switch_to.window(popup)
 		self.br.close()
 		self.br.switch_to.window(self.br.window_handles[0])
