@@ -103,7 +103,8 @@ class ScheduleAssistant:
 	def log(self, msg):
 		if self.logCurrentProcess:
 			sys.stdout.write("\r" + (" " * os.get_terminal_size().columns))
-			sys.stdout.write("\r>" + msg)
+			msg = ">" + msg if len(msg) > 0 else msg
+			sys.stdout.write("\r" + msg)
 			sys.stdout.flush()
 	
 	def saveCSV(self, data=[]):
@@ -185,7 +186,7 @@ class ScheduleAssistant:
 			return None
 
 		btn = self.br.find_element_by_id("report")
-		
+
 		parentWindow = self.br.window_handles[0]
 
 		self.log("Downloading schedule data...")
