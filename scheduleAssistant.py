@@ -29,8 +29,9 @@ class ScheduleAssistant:
 	# URLS
 	#
 
-	homePage = "https://sistema-academico.utec.edu.pe"
-	downloadPage = "https://sistema-academico.utec.edu.pe/students/view/enabled-courses"
+	sisURL = "https://sistema-academico.utec.edu.pe"
+	loginPage = "/access"
+	downloadPage = "/students/view/enabled-courses"
 
 	#
 	# BOOLS
@@ -127,7 +128,7 @@ class ScheduleAssistant:
 	# WAIT FUNCS
 	#
 
-	def waitForPageLoad(self, elementToCheck, by=By.CLASS_NAME):
+	def waitForPageLoad(self, elementToCheck, by=By.ID):
 		try: # Wait for page to finish loading
 			elementPresent = EC.presence_of_element_located((by, elementToCheck))
 			WebDriverWait(self.br, self.timeout).until(elementPresent)
@@ -150,15 +151,16 @@ class ScheduleAssistant:
 	#
 	
 	def login(self, email="", passw=""):
-		self.log("Logging in...")
 		email = self.email if email == "" else email
 		passw = self.passw if passw == "" else passw
-		self.br.get(self.homePage)
-		btn = self.br.find_element_by_tag_name("button")
-		btn.click()
+
+		self.log("Logging in...")
+		self.br.get(self.sisURL)
+		if self.loginPage not in self.br.current_url:
+			return True
+		self.br.find_element_by_tag_name("button").click()
 
 		if not self.waitForPageLoad("form", By.TAG_NAME):
-			print("Could not finish logging in")
 			return None
 
 		form = self.br.find_element_by_tag_name("form")
@@ -166,10 +168,11 @@ class ScheduleAssistant:
 		field.send_keys(email)
 
 		buttons = self.br.find_elements_by_tag_name("button")
-		btn = [i for i in buttons if len(i.find_elements_by_tag_name("span")) == 1][0]
-		btn.click()
+		[i for i in buttons if len(i.find_elements_by_tag_name("span")) == 1][0].click()
 
-		time.sleep(5)
+		if not self.waitForPageLoad("profileIdentifier"):
+			return None
+		time.sleep(1)
 
 		form = self.br.find_element_by_tag_name("form")
 		field = [i for i in form.find_elements_by_tag_name("input") if i.get_attribute("type") == "password"][0]
@@ -181,8 +184,8 @@ class ScheduleAssistant:
 
 	def downloadScheduleData(self):
 		self.log("Navigating to data download page...")
-		self.br.get(self.downloadPage)
-		if not self.waitForPageLoad("report", By.ID):
+		self.br.get(self.sisURL + self.downloadPage)
+		if not self.waitForPageLoad("report"):
 			return None
 
 		btn = self.br.find_element_by_id("report")
@@ -235,10 +238,9 @@ class ScheduleAssistant:
 		keys = ("cod", "nom", "prof", "malla", "tipo", "mod", "sec", "ses", "hora", "tipo", "ubic", "vac", "mat")
 		mat = [dict(zip(keys, i)) for i in self.scheduleDataTable[1:]]
 
-		dias = ["lun", "mar", "mie", "jue", "vie", "sab", "dom"]
-
 		self.scheduleDataDict = {}
 
+		dias = ["lun", "mar", "mie", "jue", "vie", "sab", "dom"]
 		for i in mat:
 			if i["tipo"] == "Semana General":
 				if i["cod"] not in self.scheduleDataDict:
@@ -253,8 +255,7 @@ class ScheduleAssistant:
 						"matriculados": i["mat"],
 						"sesiones": []
 					}
-				i["hora"] = i["hora"].replace(" ", "")
-				dia, hora = i["hora"].split(".")
+				dia, hora = i["hora"].replace(" ", "").split(".")
 				horaIn, horaFin = hora.split("-")
 				self.scheduleDataDict[i["cod"]]["secciones"][i["sec"]]["sesiones"].append({
 					"sesion" : i["ses"],
