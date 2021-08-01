@@ -1,8 +1,8 @@
 from scheduleAssistant import ScheduleAssistant
 
-assistant = ScheduleAssistant()
+assistant = ScheduleAssistant(input("Email: "), input("Password: "))
 assistant.initWebdriver()
-assistant.login(input("Email: "), input("Password: "))
-assistant.downloadSchedule()
+assistant.login()
+assistant.downloadScheduleData()
 assistant.pdfToTable()
 assistant.tableToDict()
