@@ -5,7 +5,12 @@
 __pycache__/
 env/
 
+# Webdrivers
+chromedriver
+geckodriver
+
 # Temp files
+temp.py
 geckodriver.log
 .down/
 horarios.pdf
