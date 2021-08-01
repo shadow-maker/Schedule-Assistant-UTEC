@@ -105,7 +105,7 @@ class ScheduleAssistant:
 			options.set_preference("browser.download.manager.closeWhenDone", True)
 			options.set_preference("pdfjs.disabled", True)
 		else:
-			print("\nERROR: browser can only be 'C' (Chrome) or 'F' (Firefox)")
+			self.error("\nBrowser can only be 'C' (Chrome) or 'F' (Firefox)")
 			return None
 
 		instBr = lambda b, p, o : webdriver.Chrome(executable_path=p, options=o) if b == "C" else webdriver.Firefox(executable_path=p, options=o)
@@ -117,7 +117,7 @@ class ScheduleAssistant:
 		except:
 			path = os.path.join(os.getcwd(), driver)
 			if not os.path.exists(path):
-				print(f"\nERROR: Required webdriver with name {driver} not found in PATH or in current working directory")
+				self.error(f"Required webdriver with name {driver} not found in PATH or in current working directory")
 				return None
 			self.br = instBr(selBrowser.upper(), path, options)
 	
@@ -131,6 +131,9 @@ class ScheduleAssistant:
 			msg = ">" + msg if len(msg) > 0 else msg
 			sys.stdout.write("\r" + msg)
 			sys.stdout.flush()
+	
+	def error(self, msg):
+		print("\nERROR: " + msg)
 	
 	def saveCSV(self, data=[]):
 		if self.saveDataCSV:
@@ -157,7 +160,7 @@ class ScheduleAssistant:
 			elementPresent = EC.presence_of_element_located((by, elementToCheck))
 			WebDriverWait(self.br, self.timeout).until(elementPresent)
 		except TimeoutException:
-			print("ERROR: Timeout!")
+			self.error("Timeout!")
 			return False
 		return True
 	
@@ -165,7 +168,7 @@ class ScheduleAssistant:
 		if func():
 			return True
 		elif timeElapsed > self.timeout:
-			print("ERROR: Timeout!")
+			self.error("Timeout!")
 			return False
 		time.sleep(interval)
 		return self.waitUntilTrue(func, timeElapsed + interval)
