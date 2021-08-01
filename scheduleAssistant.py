@@ -79,7 +79,7 @@ class ScheduleAssistant:
 		self.log("")
 
 	def initWebdriver(self, selBrowser="C"):
-		self.log("Initializing web driver...")
+		self.log("Inicializando web driver...")
 
 		downDir = os.path.join(os.getcwd(), self.downDir)
 		selBrowser = selBrowser.upper()
@@ -105,7 +105,7 @@ class ScheduleAssistant:
 			options.set_preference("browser.download.manager.closeWhenDone", True)
 			options.set_preference("pdfjs.disabled", True)
 		else:
-			self.error("\nBrowser can only be 'C' (Chrome) or 'F' (Firefox)")
+			self.error("\nbrowser solo puede ser 'C' (Chrome) o 'F' (Firefox)")
 			return None
 
 		instBr = lambda b, p, o : webdriver.Chrome(executable_path=p, options=o) if b == "C" else webdriver.Firefox(executable_path=p, options=o)
@@ -117,7 +117,7 @@ class ScheduleAssistant:
 		except:
 			path = os.path.join(os.getcwd(), driver)
 			if not os.path.exists(path):
-				self.error(f"Required webdriver with name {driver} not found in PATH or in current working directory")
+				self.error(f"webdriver con nombre {driver} no encontrado en el PATH o en el directorio actual")
 				return None
 			self.br = instBr(selBrowser.upper(), path, options)
 	
@@ -138,7 +138,7 @@ class ScheduleAssistant:
 	def saveCSV(self, data=[]):
 		if self.saveDataCSV:
 			data = self.scheduleDataTable if len(data) == 0 else data
-			self.log("Saving table as CSV...")
+			self.log("Guardando tabla (matriz) como CSV...")
 			with open(self.csvName, "w") as file:
 				writer = csv.writer(file)
 				for line in data:
@@ -147,7 +147,7 @@ class ScheduleAssistant:
 	def saveJSON(self, data={}):
 		if self.saveDataJSON:
 			data = self.scheduleDataDict if len(data) == 0 else data
-			self.log("Saving dictionary as JSON...")
+			self.log("Guardando diccionario como JSON...")
 			with open(self.jsonName, "w") as file:
 				json.dump(self.scheduleDataDict, file, indent=4, ensure_ascii=False)
 
@@ -181,7 +181,7 @@ class ScheduleAssistant:
 		email = self.email if email == "" else email
 		passw = self.passw if passw == "" else passw
 
-		self.log("Logging in...")
+		self.log("Iniciando sesion...")
 		self.br.get(self.sisURL)
 		if self.loginPage not in self.br.current_url:
 			return True
@@ -210,7 +210,7 @@ class ScheduleAssistant:
 		btn.click()
 
 	def downloadScheduleData(self):
-		self.log("Navigating to data download page...")
+		self.log("Navegando a pagina de descarga de cursos disponibles...")
 		self.br.get(self.sisURL + self.downloadPage)
 		if not self.waitForPageLoad("report"):
 			return None
@@ -219,7 +219,7 @@ class ScheduleAssistant:
 
 		homeWindow = self.br.window_handles[0]
 
-		self.log("Downloading schedule data...")
+		self.log("Descargando cursos disponibles...")
 		btn.click()
 
 		WebDriverWait(self.br, self.timeout).until(EC.number_of_windows_to_be(2))
@@ -252,7 +252,7 @@ class ScheduleAssistant:
 	#
 	
 	def pdfToTable(self):
-		self.log("Parsing table from pdf into python matrix...")
+		self.log("Parse-ando tabla de pdf a matriz de Python...")
 		tables = read_pdf("horarios.pdf", pages="all")
 
 		self.scheduleDataTable = list(itertools.chain(*[[tuple(table.columns)] + list(zip(*[[(i.replace("\r", " ") if type(i) == str else ("" if math.isnan(i) else i)) for i in table[col].to_list()] for col in table])) for table in tables]))
@@ -261,7 +261,7 @@ class ScheduleAssistant:
 		return self.scheduleDataTable
 
 	def tableToDict(self):
-		self.log("Parsing matrix into data dictionary...")
+		self.log("Parse-ando matriz a diccionario de cursos...")
 		keys = ("cod", "nom", "prof", "malla", "tipo", "mod", "sec", "ses", "hora", "tipo", "ubic", "vac", "mat")
 		mat = [dict(zip(keys, i)) for i in self.scheduleDataTable[1:]]
 
