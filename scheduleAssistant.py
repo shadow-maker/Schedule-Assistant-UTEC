@@ -32,13 +32,12 @@ class ScheduleAssistant:
 	homePage = "https://sistema-academico.utec.edu.pe"
 	downloadPage = "https://sistema-academico.utec.edu.pe/students/view/enabled-courses"
 
-
 	#
-	# TEMP DATA CONTAINERS
+	# BOOLS
 	#
 
-	scheduleDataTable = []
-	scheduleDataDict = {}
+	saveDataCSV = True
+	saveDataJSON = True
 
 	#
 	# FILE / DIR NAMES
@@ -52,11 +51,11 @@ class ScheduleAssistant:
 	jsonName = "horarios.json"
 
 	#
-	# BOOLS
+	# TEMP DATA CONTAINERS
 	#
 
-	saveDataCSV = True
-	saveDataJSON = True
+	scheduleDataTable = []
+	scheduleDataDict = {}
 
 	#
 	# TIME VARS
