@@ -337,6 +337,7 @@ class ScheduleAssistant:
 
 	# Checks that every extracted course is valid
 	def validateCoursesData(self):
+		self.log("Validando que no hayan conflictos entre las sesiones de cada seccion de cada curso...")
 		return sum([int(not self.validateCourse(c)) for c in self.scheduleDataDict]) == 0
 	
 	#
@@ -367,6 +368,7 @@ class ScheduleAssistant:
 	
 	# Gets all possible combinations of classes from a selected list of courses
 	def getClassCombinations(self, courses):
+		self.log("Generando todas las posibles combinaciones de secciones con los cursos {courses}...")
 		return list(itertools.product(*[
 			[self.addCourseInfoToSessions(cod, sec) for sec in self.scheduleDataDict[cod]["secciones"]] for cod in courses
 		]))
@@ -374,6 +376,7 @@ class ScheduleAssistant:
 
 	# Gets all possible schedules from a selected list of courses
 	def getPossibleSchedules(self, courses):
+		self.log("Generando todos los posibles horarios con los cursos {courses}...")
 		possibleSchedules = []
 		for comb in self.getClassCombinations(courses):
 			schedule = self.mergeClassesIntoWeekIfPossible(comb)
