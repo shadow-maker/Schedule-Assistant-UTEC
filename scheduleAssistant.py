@@ -345,14 +345,14 @@ class ScheduleAssistant:
 
 	# Adds the course' info into every session of a section
 	def addCourseInfoToSessions(self, cod, sec):
-		sessions = self.scheduleDataDict[cod]["secciones"][sec]["sesiones"]
-		for ses in sessions:
-			ses["codigo"] = cod
-			ses["nombre"] = self.scheduleDataDict[cod]["nombre"]
-			ses["seccion"] = sec
-			ses["vacantes"] = self.scheduleDataDict[cod]["secciones"][sec]["vacantes"]
-			ses["matriculados"] = self.scheduleDataDict[cod]["secciones"][sec]["matriculados"]
-		return sessions
+		return [{
+			"codigo" : cod,
+			"nombre" : self.scheduleDataDict[cod]["nombre"],
+			"seccion" : sec,
+			"vacantes" : self.scheduleDataDict[cod]["secciones"][sec]["vacantes"],
+			"matriculados" : self.scheduleDataDict[cod]["secciones"][sec]["matriculados"],
+			**ses
+		} for ses in self.scheduleDataDict[cod]["secciones"][sec]["sesiones"]]
 
 	# Merges a list of classes (sections) into a week matrix if no conflict is found
 	def mergeClassesIntoWeekIfPossible(self, classes=[]):
@@ -364,3 +364,19 @@ class ScheduleAssistant:
 						return []
 					week[ses["dia"]][ses["hora"]+ i] = ses
 		return week
+	
+	# Gets all possible combinations of classes from a selected list of courses
+	def getClassCombinations(self, courses):
+		return list(itertools.product(*[
+			[self.addCourseInfoToSessions(cod, sec) for sec in self.scheduleDataDict[cod]["secciones"]] for cod in courses
+		]))
+
+
+	# Gets all possible schedules from a selected list of courses
+	def getPossibleSchedules(self, courses):
+		possibleSchedules = []
+		for comb in self.getClassCombinations(courses):
+			schedule = self.mergeClassesIntoWeekIfPossible(comb)
+			if schedule != []:
+				possibleSchedules.append(schedule)
+		return possibleSchedules
