@@ -70,14 +70,17 @@ class ScheduleAssistant:
 	# INIT
 	#
 
+	# Constructor - Initializes with optional email and password
 	def __init__(self, email="", passw=""):
 		print("-" * 29 + "\n\n  SCHEDULE ASSISTANT - UTEC\n\n" + "-" * 29)
 		self.email = email
 		self.passw = passw
 	
+	# Destructor - Cleans the console
 	def __del__(self):
 		self.log("")
 
+	# Initializes the webdriver with the selected browser
 	def initWebdriver(self, selBrowser="C"):
 		self.log("Inicializando web driver...")
 
@@ -125,6 +128,7 @@ class ScheduleAssistant:
 	# LOG FUNCS
 	#
 
+	# Cleans last log message and prints a new one in the same line
 	def log(self, msg):
 		if self.logCurrentProcess:
 			sys.stdout.write("\r" + (" " * os.get_terminal_size().columns))
@@ -132,9 +136,15 @@ class ScheduleAssistant:
 			sys.stdout.write("\r" + msg)
 			sys.stdout.flush()
 	
+	# Prints error messages
 	def error(self, msg):
 		print("\nERROR: " + msg)
 	
+	#
+	# SAVE FILE FUNCS
+	#
+	
+	# Saves a Python matrix as a CSV file
 	def saveCSV(self, data=[]):
 		if self.saveDataCSV:
 			data = self.scheduleDataTable if len(data) == 0 else data
@@ -144,6 +154,7 @@ class ScheduleAssistant:
 				for line in data:
 					writer.writerow(line)
 
+	# Saves a Python dictionary as a JSON file
 	def saveJSON(self, data={}):
 		if self.saveDataJSON:
 			data = self.scheduleDataDict if len(data) == 0 else data
@@ -155,8 +166,9 @@ class ScheduleAssistant:
 	# WAIT FUNCS
 	#
 
+	# Waits for a certain element to appear in the webpage
 	def waitForPageLoad(self, elementToCheck, by=By.ID):
-		try: # Wait for page to finish loading
+		try:
 			elementPresent = EC.presence_of_element_located((by, elementToCheck))
 			WebDriverWait(self.br, self.timeout).until(elementPresent)
 		except TimeoutException:
@@ -164,6 +176,7 @@ class ScheduleAssistant:
 			return False
 		return True
 	
+	# Waits until a boolean lambda func becomes True
 	def waitUntilTrue(self, func, timeElapsed=0, interval=0.1):
 		if func():
 			return True
@@ -177,6 +190,7 @@ class ScheduleAssistant:
 	# WEB SCRAPER FUNCS
 	#
 	
+	# Logs in the user
 	def login(self, email="", passw=""):
 		email = self.email if email == "" else email
 		passw = self.passw if passw == "" else passw
@@ -209,6 +223,7 @@ class ScheduleAssistant:
 		btn = [i for i in buttons if len(i.find_elements_by_tag_name("span")) == 1][0]
 		btn.click()
 
+	# Navigates to enabled courses download page and downloads the courses pdf
 	def downloadScheduleData(self):
 		self.log("Navegando a pagina de descarga de cursos disponibles...")
 		self.br.get(self.sisURL + self.downloadPage)
@@ -251,6 +266,7 @@ class ScheduleAssistant:
 	# DATA PARSER FUNCS
 	#
 	
+	# Scrapes the courses' schedules pdf and parses into a Python matrix
 	def pdfToTable(self):
 		self.log("Parse-ando tabla de pdf a matriz de Python...")
 		tables = read_pdf(self.pdfName, pages="all")
@@ -266,6 +282,7 @@ class ScheduleAssistant:
 		self.saveCSV()
 		return self.scheduleDataTable
 
+	# Parses the schedule data table into a Python dictionary
 	def tableToDict(self):
 		self.log("Parse-ando matriz a diccionario de cursos...")
 		keys = ("cod", "nom", "prof", "malla", "tipo", "mod", "sec", "ses", "hora", "tipo", "ubic", "vac", "mat")
