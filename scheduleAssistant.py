@@ -268,9 +268,10 @@ class ScheduleAssistant:
 	
 	# Scrapes the courses' schedules pdf and parses into a Python matrix
 	def pdfToTable(self):
-		self.log("Parse-ando tabla de pdf a matriz de Python...")
+		self.log("Leyendo tablas del pdf...")
 		tables = read_pdf(self.pdfName, pages="all")
 
+		self.log("Parse-ando tabla de pdf a matriz de Python...")
 		self.scheduleDataTable = [tuple(tables[0].columns)] + list(itertools.chain(*[
 			list(zip(*[[
 				(
@@ -320,3 +321,46 @@ class ScheduleAssistant:
 
 		self.saveJSON()
 		return self.scheduleDataDict
+
+	#
+	# VALIDATION FUNCS
+	#
+
+	# Validates that the sessions in each section of a course don't conflict
+	def validateCourse(self, cod):
+		valid = True
+		for secNum, sec in self.scheduleDataDict[cod]["secciones"].items():
+			if self.mergeClassesIntoWeekIfPossible([[i] for i in sec["sesiones"]]) == []:
+				self.error(f"Conflicto de horarios encontrado entre las sesiones de la seccion {secNum} del curso {cod}")
+				valid = False
+		return valid
+
+	# Checks that every extracted course is valid
+	def validateCoursesData(self):
+		return sum([int(not self.validateCourse(c)) for c in self.scheduleDataDict]) == 0
+	
+	#
+	# SCHEDULE GENERATOR FUNCS
+	#
+
+	# Adds the course' info into every session of a section
+	def addCourseInfoToSessions(self, cod, sec):
+		sessions = self.scheduleDataDict[cod]["secciones"][sec]["sesiones"]
+		for ses in sessions:
+			ses["codigo"] = cod
+			ses["nombre"] = self.scheduleDataDict[cod]["nombre"]
+			ses["seccion"] = sec
+			ses["vacantes"] = self.scheduleDataDict[cod]["secciones"][sec]["vacantes"]
+			ses["matriculados"] = self.scheduleDataDict[cod]["secciones"][sec]["matriculados"]
+		return sessions
+
+	# Merges a list of classes (sections) into a week matrix if no conflict is found
+	def mergeClassesIntoWeekIfPossible(self, classes=[]):
+		week = [[{} for j in range(24)] for i in range(7)]
+		for sessions in classes:
+			for ses in sessions:
+				for i in range(ses["duracion"]):
+					if week[ses["dia"]][ses["hora"]+ i] != {}:
+						return []
+					week[ses["dia"]][ses["hora"]+ i] = ses
+		return week
