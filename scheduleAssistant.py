@@ -253,9 +253,15 @@ class ScheduleAssistant:
 	
 	def pdfToTable(self):
 		self.log("Parse-ando tabla de pdf a matriz de Python...")
-		tables = read_pdf("horarios.pdf", pages="all")
+		tables = read_pdf(self.pdfName, pages="all")
 
-		self.scheduleDataTable = list(itertools.chain(*[[tuple(table.columns)] + list(zip(*[[(i.replace("\r", " ") if type(i) == str else ("" if math.isnan(i) else i)) for i in table[col].to_list()] for col in table])) for table in tables]))
+		self.scheduleDataTable = [tuple(tables[0].columns)] + list(itertools.chain(*[
+			list(zip(*[[
+				(
+					" ".join(i.replace("\r", " ").replace("\n", " ").split(", ")[::-1]) if type(i) == str else ("" if math.isnan(i) else i)
+				) for i in table[col].to_list()
+			] for col in table])) for table in tables
+		]))
 
 		self.saveCSV()
 		return self.scheduleDataTable
@@ -268,29 +274,32 @@ class ScheduleAssistant:
 		self.scheduleDataDict = {}
 
 		dias = ["lun", "mar", "mie", "jue", "vie", "sab", "dom"]
+		blacklist = []
 		for i in mat:
-			if i["tipo"] == "Semana General":
-				if i["cod"] not in self.scheduleDataDict:
-					self.scheduleDataDict[i["cod"]] = {
-						"nombre": i["nom"],
-						"malla": i["malla"],
-						"secciones": {}
-					}
-				if i["sec"] not in self.scheduleDataDict[i["cod"]]["secciones"]:
-					self.scheduleDataDict[i["cod"]]["secciones"][i["sec"]] = {
-						"vacantes": i["vac"],
-						"matriculados": i["mat"],
-						"sesiones": []
-					}
-				dia, hora = i["hora"].replace(" ", "").split(".")
-				horaIn, horaFin = hora.split("-")
-				self.scheduleDataDict[i["cod"]]["secciones"][i["sec"]]["sesiones"].append({
-					"sesion" : i["ses"],
-					"dia" : dias.index(dia.lower()),
-					"hora" : int(horaIn.split(":")[0]),
-					"duracion" : int(horaFin.split(":")[0]) - int(horaIn.split(":")[0]),
-					"docente" : i["prof"]
-				})
+			if i["tipo"] != "Semana General" or i["cod"] in blacklist:
+				blacklist.append(i["cod"])
+				continue
+			if i["cod"] not in self.scheduleDataDict:
+				self.scheduleDataDict[i["cod"]] = {
+					"nombre": i["nom"],
+					#"malla": i["malla"],
+					"secciones": {}
+				}
+			if i["sec"] not in self.scheduleDataDict[i["cod"]]["secciones"]:
+				self.scheduleDataDict[i["cod"]]["secciones"][i["sec"]] = {
+					"vacantes": i["vac"],
+					"matriculados": i["mat"],
+					"sesiones": []
+				}
+			dia, hora = i["hora"].replace(" ", "").split(".")
+			horaIn, horaFin = hora.split("-")
+			self.scheduleDataDict[i["cod"]]["secciones"][i["sec"]]["sesiones"].append({
+				"sesion" : i["ses"],
+				"dia" : dias.index(dia.lower()),
+				"hora" : int(horaIn.split(":")[0]),
+				"duracion" : int(horaFin.split(":")[0]) - int(horaIn.split(":")[0]),
+				"docente" : i["prof"]
+			})
 
 		self.saveJSON()
 		return self.scheduleDataDict
