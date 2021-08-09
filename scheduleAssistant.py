@@ -392,6 +392,34 @@ class ScheduleAssistant:
 			if schedule != []:
 				possibleSchedules.append(schedule)
 		return possibleSchedules
+
+	#
+	# FILTERING FUNCS
+	#
+
+	def filterBy(self, func, allSes=True):
+		result = {}
+		for code, courseData in self.coursesDataDict.items():
+			secsFound = {}
+			for secNum, secData in courseData["secciones"].items():
+				sesFound = len([ses for ses in secData["sesiones"] if func(ses)])
+				if sesFound > 0 and (sesFound == len(secData["sesiones"]) or not allSes):
+					secsFound[secNum] = secData
+			if len(secsFound) > 0:
+				result[code] = {"nombre" : courseData["nombre"], "secciones": secsFound}
+		return result
+
+	def filterByProf(self, query=""):
+		return self.filterBy(lambda ses : query.lower() in ses["docente"].lower(), False)
+
+	def filterByMinBegTime(self, time=0):
+		return self.filterBy(lambda ses : time <= ses["hora"])
+
+	def filterByMaxEndTime(self, time=24):
+		return self.filterBy(lambda ses : time >= ses["hora"] + ses["duracion"])
+
+	def filterByDurTime(self, time=2):
+		return self.filterBy(lambda ses : time == ses["duracion"])	
 	
 	#
 	# UI FUNCS
