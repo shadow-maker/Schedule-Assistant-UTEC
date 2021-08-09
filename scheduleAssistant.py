@@ -470,7 +470,11 @@ class ScheduleAssistant:
 					return False
 			elif existent[op] == "JSON":
 				with open(self.jsonName, "r") as file:
-					self.scheduleDataDict = json.load(file)
+					try:
+						self.scheduleDataDict = json.load(file)
+					except:
+						self.error(f"No se pudo leer archivo JSON {self.jsonName}")
+						return False
 			self.log("")
 		else:
 			print(f"No se encontro el archivo de data de horarios de los cursos disponibles en PDF ({self.pdfName}), CSV ({self.csvName}), o JSON ({self.jsonName})")
