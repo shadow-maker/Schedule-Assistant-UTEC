@@ -398,13 +398,10 @@ class ScheduleAssistant:
 	def optionSelector(self, options):
 		print("Selecciona una opcion:")
 		print("\n".join([f"[{i + 1}] {options[i]}" for i in range(len(options))]))
-		selection = 0
-		while selection not in list(range(1, len(options) + 1)):
-			try:
-				selection = int(input(">"))
-			except:
-				continue
-		return options[selection - 1]
+		selection = ""
+		while selection not in [str(i + 1) for i in range(len(options))]:
+			selection = input(">")
+		return options[int(selection) - 1]
 	
 
 	def boolSelector(self):
