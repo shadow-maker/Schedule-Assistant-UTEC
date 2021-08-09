@@ -57,8 +57,8 @@ class ScheduleAssistant:
 	# TEMP DATA CONTAINERS
 	#
 
-	scheduleDataTable = []
-	scheduleDataDict = {}
+	coursesDataTable = []
+	coursesDataDict = {}
 
 	#
 	# TIME VARS
@@ -148,7 +148,7 @@ class ScheduleAssistant:
 	# Saves a Python matrix as a CSV file
 	def saveCSV(self, data=[]):
 		if self.saveDataCSV:
-			data = self.scheduleDataTable if len(data) == 0 else data
+			data = self.coursesDataTable if len(data) == 0 else data
 			self.log("Guardando tabla (matriz) como CSV...")
 			with open(self.csvName, "w") as file:
 				writer = csv.writer(file)
@@ -158,10 +158,10 @@ class ScheduleAssistant:
 	# Saves a Python dictionary as a JSON file
 	def saveJSON(self, data={}):
 		if self.saveDataJSON:
-			data = self.scheduleDataDict if len(data) == 0 else data
+			data = self.coursesDataDict if len(data) == 0 else data
 			self.log("Guardando diccionario como JSON...")
 			with open(self.jsonName, "w") as file:
-				json.dump(self.scheduleDataDict, file, indent=4, ensure_ascii=False)
+				json.dump(self.coursesDataDict, file, indent=4, ensure_ascii=False)
 
 	#
 	# WAIT FUNCS
@@ -281,7 +281,7 @@ class ScheduleAssistant:
 			self.error(f"No se pudo leer tablas del pdf {self.pdfName}. Posiblemente el formato sea el incorrecto")
 
 		self.log("Parse-ando tabla de pdf a matriz de Python...")
-		self.scheduleDataTable = [tuple(tables[0].columns)] + list(itertools.chain(*[
+		self.coursesDataTable = [tuple(tables[0].columns)] + list(itertools.chain(*[
 			list(zip(*[[
 				(
 					" ".join(i.replace("\r", " ").replace("\n", " ").split(", ")[::-1]) if type(i) == str else ("" if math.isnan(i) else i)
@@ -290,15 +290,15 @@ class ScheduleAssistant:
 		]))
 
 		self.saveCSV()
-		return self.scheduleDataTable
+		return self.coursesDataTable
 
 	# Parses the schedule data table into a Python dictionary
 	def tableToDict(self):
 		self.log("Parse-ando matriz a diccionario de cursos...")
 		keys = ("cod", "nom", "prof", "malla", "tipo", "mod", "sec", "ses", "hora", "tipo", "ubic", "vac", "mat")
-		mat = [dict(zip(keys, i)) for i in self.scheduleDataTable[1:]]
+		mat = [dict(zip(keys, i)) for i in self.coursesDataTable[1:]]
 
-		self.scheduleDataDict = {}
+		self.coursesDataDict = {}
 
 		dias = ["lun", "mar", "mie", "jue", "vie", "sab", "dom"]
 		blacklist = []
@@ -306,21 +306,21 @@ class ScheduleAssistant:
 			if i["tipo"] != "Semana General" or i["cod"] in blacklist:
 				blacklist.append(i["cod"])
 				continue
-			if i["cod"] not in self.scheduleDataDict:
-				self.scheduleDataDict[i["cod"]] = {
+			if i["cod"] not in self.coursesDataDict:
+				self.coursesDataDict[i["cod"]] = {
 					"nombre": i["nom"],
 					#"malla": i["malla"],
 					"secciones": {}
 				}
-			if i["sec"] not in self.scheduleDataDict[i["cod"]]["secciones"]:
-				self.scheduleDataDict[i["cod"]]["secciones"][i["sec"]] = {
+			if i["sec"] not in self.coursesDataDict[i["cod"]]["secciones"]:
+				self.coursesDataDict[i["cod"]]["secciones"][i["sec"]] = {
 					"vacantes": i["vac"],
 					"matriculados": i["mat"],
 					"sesiones": []
 				}
 			dia, hora = i["hora"].replace(" ", "").split(".")
 			horaIn, horaFin = hora.split("-")
-			self.scheduleDataDict[i["cod"]]["secciones"][i["sec"]]["sesiones"].append({
+			self.coursesDataDict[i["cod"]]["secciones"][i["sec"]]["sesiones"].append({
 				"sesion" : i["ses"],
 				"dia" : dias.index(dia.lower()),
 				"hora" : int(horaIn.split(":")[0]),
@@ -329,7 +329,7 @@ class ScheduleAssistant:
 			})
 
 		self.saveJSON()
-		return self.scheduleDataDict
+		return self.coursesDataDict
 
 	#
 	# VALIDATION FUNCS
@@ -338,7 +338,7 @@ class ScheduleAssistant:
 	# Validates that the sessions in each section of a course don't conflict
 	def validateCourse(self, cod):
 		valid = True
-		for secNum, sec in self.scheduleDataDict[cod]["secciones"].items():
+		for secNum, sec in self.coursesDataDict[cod]["secciones"].items():
 			if self.mergeClassesIntoWeekIfPossible([[i] for i in sec["sesiones"]]) == []:
 				self.error(f"Conflicto de horarios encontrado entre las sesiones de la seccion {secNum} del curso {cod}")
 				valid = False
@@ -347,7 +347,7 @@ class ScheduleAssistant:
 	# Checks that every extracted course is valid
 	def validateCoursesData(self):
 		self.log("Validando que no hayan conflictos entre las sesiones de cada seccion de cada curso...")
-		return sum([int(not self.validateCourse(c)) for c in self.scheduleDataDict]) == 0
+		return sum([int(not self.validateCourse(c)) for c in self.coursesDataDict]) == 0
 	
 	#
 	# SCHEDULE GENERATOR FUNCS
@@ -357,12 +357,12 @@ class ScheduleAssistant:
 	def addCourseInfoToSessions(self, cod, sec):
 		return [{
 			"codigo" : cod,
-			"nombre" : self.scheduleDataDict[cod]["nombre"],
+			"nombre" : self.coursesDataDict[cod]["nombre"],
 			"seccion" : sec,
-			"vacantes" : self.scheduleDataDict[cod]["secciones"][sec]["vacantes"],
-			"matriculados" : self.scheduleDataDict[cod]["secciones"][sec]["matriculados"],
+			"vacantes" : self.coursesDataDict[cod]["secciones"][sec]["vacantes"],
+			"matriculados" : self.coursesDataDict[cod]["secciones"][sec]["matriculados"],
 			**ses
-		} for ses in self.scheduleDataDict[cod]["secciones"][sec]["sesiones"]]
+		} for ses in self.coursesDataDict[cod]["secciones"][sec]["sesiones"]]
 
 	# Merges a list of classes (sections) into a week matrix if no conflict is found
 	def mergeClassesIntoWeekIfPossible(self, classes=[]):
@@ -379,7 +379,7 @@ class ScheduleAssistant:
 	def getClassCombinations(self, courses):
 		self.log("Generando todas las posibles combinaciones de secciones con los cursos {courses}...")
 		return list(itertools.product(*[
-			[self.addCourseInfoToSessions(cod, sec) for sec in self.scheduleDataDict[cod]["secciones"]] for cod in courses
+			[self.addCourseInfoToSessions(cod, sec) for sec in self.coursesDataDict[cod]["secciones"]] for cod in courses
 		]))
 
 
@@ -443,7 +443,7 @@ class ScheduleAssistant:
 	
 
 	def printAvailableCourses(self):
-		for course, data in self.scheduleDataDict.items():
+		for course, data in self.coursesDataDict.items():
 			print(f"{course} - {data['nombre']} ({len(data['secciones'])} secciones)")
 
 	
@@ -465,13 +465,13 @@ class ScheduleAssistant:
 					return False
 			elif existent[op] == "CSV":
 				with open(self.csvName, "r") as file:
-					self.scheduleDataTable = [line.replace("\n", "").split(",") for line in file.readlines()]
+					self.coursesDataTable = [line.replace("\n", "").split(",") for line in file.readlines()]
 				if not self.tableToDict():
 					return False
 			elif existent[op] == "JSON":
 				with open(self.jsonName, "r") as file:
 					try:
-						self.scheduleDataDict = json.load(file)
+						self.coursesDataDict = json.load(file)
 					except:
 						self.error(f"No se pudo leer archivo JSON {self.jsonName}")
 						return False
@@ -485,7 +485,7 @@ class ScheduleAssistant:
 			return False
 
 		self.log("")
-		print(f"Se encontraron {len(self.scheduleDataDict)} cursos disponibles para la matricula")
+		print(f"Se encontraron {len(self.coursesDataDict)} cursos disponibles para la matricula")
 		print("Desea mostrarlos?")
 		if self.boolSelector():
 			self.printAvailableCourses()
