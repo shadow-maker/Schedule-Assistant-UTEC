@@ -109,7 +109,7 @@ class ScheduleAssistant:
 			options.set_preference("pdfjs.disabled", True)
 		else:
 			self.error("\nbrowser solo puede ser 'C' (Chrome) o 'F' (Firefox)")
-			return None
+			return False
 
 		instBr = lambda b, p, o : webdriver.Chrome(executable_path=p, options=o) if b == "C" else webdriver.Firefox(executable_path=p, options=o)
 
@@ -121,8 +121,9 @@ class ScheduleAssistant:
 			path = os.path.join(os.getcwd(), driver)
 			if not os.path.exists(path):
 				self.error(f"webdriver con nombre {driver} no encontrado en el PATH o en el directorio actual")
-				return None
+				return False
 			self.br = instBr(selBrowser.upper(), path, options)
+		return True
 	
 	#
 	# LOG FUNCS
@@ -132,7 +133,7 @@ class ScheduleAssistant:
 	def log(self, msg):
 		if self.logCurrentProcess:
 			sys.stdout.write("\r" + (" " * os.get_terminal_size().columns))
-			msg = ">" + msg if len(msg) > 0 else msg
+			msg = f"# {msg}" if len(msg) > 0 else msg
 			sys.stdout.write("\r" + msg)
 			sys.stdout.flush()
 	
@@ -202,7 +203,7 @@ class ScheduleAssistant:
 		self.br.find_element_by_tag_name("button").click()
 
 		if not self.waitForPageLoad("form", By.TAG_NAME):
-			return None
+			return False
 
 		form = self.br.find_element_by_tag_name("form")
 		field = [i for i in form.find_elements_by_tag_name("input") if i.get_attribute("type") == "email"][0]
@@ -212,7 +213,7 @@ class ScheduleAssistant:
 		[i for i in buttons if len(i.find_elements_by_tag_name("span")) == 1][0].click()
 
 		if not self.waitForPageLoad("profileIdentifier"):
-			return None
+			return False
 		time.sleep(1)
 
 		form = self.br.find_element_by_tag_name("form")
@@ -222,13 +223,14 @@ class ScheduleAssistant:
 		buttons = self.br.find_elements_by_tag_name("button")
 		btn = [i for i in buttons if len(i.find_elements_by_tag_name("span")) == 1][0]
 		btn.click()
+		return True
 
 	# Navigates to enabled courses download page and downloads the courses pdf
 	def downloadScheduleData(self):
 		self.log("Navegando a pagina de descarga de cursos disponibles...")
 		self.br.get(self.sisURL + self.downloadPage)
 		if not self.waitForPageLoad("report"):
-			return None
+			return False
 
 		btn = self.br.find_element_by_id("report")
 
@@ -244,15 +246,15 @@ class ScheduleAssistant:
 		fname = os.path.join(self.downDir, "pdf")
 
 		if not self.waitUntilTrue(lambda : os.path.exists(fname)):
-			return None
+			return False
 
 		if not self.waitUntilTrue(lambda : os.stat(fname).st_size > 0):
-			return None
+			return False
 		
 		os.rename(fname, self.pdfName)
 
 		if not self.waitUntilTrue(lambda : len(list(os.walk(self.downDir))[0][2]) == 0):
-			return None
+			return False
 
 		os.rmdir(self.downDir)
 
@@ -401,7 +403,7 @@ class ScheduleAssistant:
 		selection = ""
 		while selection not in [str(i + 1) for i in range(len(options))]:
 			selection = input(">")
-		return options[int(selection) - 1]
+		return int(selection) - 1
 	
 
 	def boolSelector(self):
@@ -412,3 +414,74 @@ class ScheduleAssistant:
 		while selection not in yOps + nOps:
 			selection = input(">").lower()
 		return selection in yOps
+	
+	def downloadPDF(self):
+		print(f"Puede descargar el pdf de horarios disonibles de {self.sisURL + self.downloadPage} manualmente, o descargarlo automaticamente con este programa")
+		print("Para descargar el archivo de data automaticamente deberá descargar el webdriver para el browser de su eleccion")
+		print("Desea descargar el archivo de data automaticamente?")
+
+		if self.boolSelector():
+			print("Seleccione el browser que desea usar [C] Chrome o [F] Firefox:")
+			selBrowser = ""
+			while selBrowser not in ["C", "F"]:
+				selBrowser = input(">").upper()
+			if not self.initWebdriver(selBrowser):
+				return False
+			self.log("")
+			if not self.login(input("Ingrese su email de la UTEC: "), input("Ingrese su password de la UTEC: ")):
+				return False
+			if not self.downloadScheduleData():
+				return False
+			if not self.pdfToTable():
+				return False
+			if not self.tableToDict():
+				return False
+			self.log("")
+			return True
+		print("Puede volver a inicar este programa cuando haya descargado el archivo de data de horarios de los cursos disponibles")
+		return False
+	
+
+	def printAvailableCourses(self):
+		for course, data in self.scheduleDataDict.items():
+			print(f"{course} - {data['nombre']} ({len(data['secciones'])} secciones)")
+
+	
+	def begin(self):
+		exists = dict(zip(["PDF", "CSV", "JSON"], [os.path.exists(i) for i in [self.pdfName, self.csvName, self.jsonName]]))
+		existent = [i for i in exists if exists[i]]
+
+		if len(existent) > 0:
+			print(f"Se encontraron archivos {', '.join(existent)} con la data de horarios de los cursos disponibles")
+			print("Desea...")
+			op = self.optionSelector([f"Cargar data desde archivo {i}" for i in existent] + ["Volver a descargar pdf de horarios de los cursos disponibles"])
+			if op == len(existent):
+				if not self.downloadPDF():
+					return False
+			elif existent[op] == "PDF":
+				if not self.pdfToTable():
+					return False
+				if not self.tableToDict():
+					return False
+			elif existent[op] == "CSV":
+				with open(self.csvName, "r") as file:
+					self.scheduleDataTable = [line.replace("\n", "").split(",") for line in file.readlines()]
+				if not self.tableToDict():
+					return False
+			elif existent[op] == "JSON":
+				with open(self.jsonName, "r") as file:
+					self.scheduleDataDict = json.load(file)
+			self.log("")
+		else:
+			print(f"No se encontro el archivo de data de horarios de los cursos disponibles en PDF ({self.pdfName}), CSV ({self.csvName}), o JSON ({self.jsonName})")
+			if not self.downloadPDF():
+				return False
+		
+		if not self.validateCoursesData():
+			return False
+
+		self.log("")
+		print(f"Se encontraron {len(self.scheduleDataDict)} cursos disponibles para la matricula")
+		print("Desea mostrarlos?")
+		if self.boolSelector():
+			self.printAvailableCourses()
