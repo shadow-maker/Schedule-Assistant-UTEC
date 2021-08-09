@@ -268,8 +268,15 @@ class ScheduleAssistant:
 	
 	# Scrapes the courses' schedules pdf and parses into a Python matrix
 	def pdfToTable(self):
+		if not os.path.exists(self.pdfName):
+			self.error(f"El pdf de horarios con nombre {self.pdfName} no existe")
+			return 0
+
 		self.log("Leyendo tablas del pdf...")
-		tables = read_pdf(self.pdfName, pages="all")
+		try:
+			tables = read_pdf(self.pdfName, pages="all")
+		except:
+			self.error(f"No se pudo leer tablas del pdf {self.pdfName}. Posiblemente el formato sea el incorrecto")
 
 		self.log("Parse-ando tabla de pdf a matriz de Python...")
 		self.scheduleDataTable = [tuple(tables[0].columns)] + list(itertools.chain(*[
@@ -383,3 +390,28 @@ class ScheduleAssistant:
 			if schedule != []:
 				possibleSchedules.append(schedule)
 		return possibleSchedules
+	
+	#
+	# UI FUNCS
+	#
+
+	def optionSelector(self, options):
+		print("Selecciona una opcion:")
+		print("\n".join([f"[{i + 1}] {options[i]}" for i in range(len(options))]))
+		selection = 0
+		while selection not in list(range(1, len(options) + 1)):
+			try:
+				selection = int(input(">"))
+			except:
+				continue
+		return options[selection - 1]
+	
+
+	def boolSelector(self):
+		print("Selecciona [si] o [no]:")
+		yOps = ["si", "s", "yes", "y", "1", "true", "t"]
+		nOps = ["no", "n", "0", "false", "f"]
+		selection = ""
+		while selection not in yOps + nOps:
+			selection = input(">").lower()
+		return selection in yOps
