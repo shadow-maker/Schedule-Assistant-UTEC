@@ -416,18 +416,20 @@ class ScheduleAssistant:
 		return week
 	
 	# Gets all possible combinations of classes from a selected list of courses
-	def getClassCombinations(self, courses):
-		self.log("Generando todas las posibles combinaciones de secciones con los cursos {courses}...")
+	def getClassCombinations(self, data={}):
+		self.log("Generando todas las posibles combinaciones de secciones con los cursos {', '.join(data.keys())}...")
+		data = self.coursesDataDict if data == {} else data
 		return list(itertools.product(*[
-			[self.addCourseInfoToSessions(cod, sec) for sec in self.coursesDataDict[cod]["secciones"]] for cod in courses
+			[self.addCourseInfoToSessions(code, sec) for sec in data[code]["secciones"]] for code in data
 		]))
 
 
 	# Gets all possible schedules from a selected list of courses
-	def getPossibleSchedules(self, courses):
+	def getPossibleSchedules(self, data={}):
 		self.log("Generando todos los posibles horarios con los cursos {courses}...")
+		data = self.coursesDataDict if data == {} else data
 		possibleSchedules = []
-		for comb in self.getClassCombinations(courses):
+		for comb in self.getClassCombinations(data):
 			schedule = self.mergeClassesIntoWeekIfPossible(comb)
 			if schedule != []:
 				possibleSchedules.append(schedule)
