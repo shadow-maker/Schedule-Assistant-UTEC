@@ -381,6 +381,18 @@ class ScheduleAssistant:
 	# SCHEDULE GENERATOR FUNCS
 	#
 
+	# Merge multiple course data dicts into one
+	def mergeCoursesData(self, dataDicts):
+		newData = {}
+		for data in dataDicts:
+			for course in data:
+				if course not in newData:
+					newData[course] = data[course]
+				else:
+					for sec in data[course]["secciones"]:
+						newData[course]["secciones"][sec] = data[course]["secciones"][sec]
+		return newData
+
 	# Adds the course' info into every session of a section
 	def addCourseInfoToSessions(self, cod, sec):
 		return [{
@@ -439,7 +451,10 @@ class ScheduleAssistant:
 		return result
 
 	def filterByProf(self, query="", baseData={}):
-		return self.filterBy(lambda ses : query.lower() in ses["docente"].lower(), False, baseData)
+		if query == "":
+			return baseData
+		queries = query.replace(" ", "").lower().split(",")
+		return self.mergeCoursesData([baseData, self.filterByProf(",".join(queries[1:]), self.filterBy(lambda ses : queries[0] in ses["docente"].lower(), False))])
 
 	def filterByMinBegTime(self, time=0, baseData={}):
 		return self.filterBy(lambda ses : time <= ses["hora"], True, baseData)
