@@ -95,6 +95,9 @@ class ScheduleAssistant:
 				"download.directory_upgrade": True,
 				"plugins.always_open_pdf_externally": True
 			})
+			options.add_experimental_option("excludeSwitches", ["enable-automation"])
+			options.add_experimental_option('useAutomationExtension', False)
+			options.add_argument('--disable-blink-features=AutomationControlled')
 		elif selBrowser == "F":
 			options = webdriver.FirefoxOptions()
 			options.set_preference("browser.download.folderList", 2)
