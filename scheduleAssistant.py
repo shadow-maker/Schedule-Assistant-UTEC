@@ -500,7 +500,7 @@ class ScheduleAssistant:
 		return True
 
 	
-	def filterMenu(self, baseData={}):
+	def filterMenu(self, data={}):
 		op = self.optionIndexSelector([
 			"Filtrar por profesor",
 			"Filtrar por hora minima de inicio de la sesion",
@@ -509,13 +509,35 @@ class ScheduleAssistant:
 		])
 
 		if op == 0:
-			pass
+			data = self.filterByProf(input("Ingrese profesor a buscar:\n>"), data)
 		elif op == 1:
-			pass
+			print("Ingrese la hora minima de inicio de la sesion:")
+			time = -1
+			while time < 0 or time > 23:
+				try:
+					time = int(input(">"))
+				except:
+					continue
+			data = self.filterByMinBegTime(time, data)
 		elif op == 2:
-			pass
+			print("Ingrese la hora maxima de fin de la sesion:")
+			time = -1
+			while time < 0 or time > 23:
+				try:
+					time = int(input(">"))
+				except:
+					continue
+			data = self.filterByMaxEndTime(time, data)
 		elif op == 3:
-			pass
+			print("Ingrese la hora de duracion de la sesion:")
+			time = -1
+			while time < 1 or time > 5:
+				try:
+					time = int(input(">"))
+				except:
+					continue
+			data = self.filterByDurTime(time, data)
+		return data
 	
 	def mainMenu(self):
 		op = 0
