@@ -67,6 +67,12 @@ class ScheduleAssistant:
 	timeout = 30
 
 	#
+	# CONSTANTS
+	#
+
+	dias = ["lun", "mar", "mie", "jue", "vie", "sab", "dom"]
+
+	#
 	# INIT
 	#
 
@@ -317,7 +323,6 @@ class ScheduleAssistant:
 
 		self.coursesDataDict = {}
 
-		dias = ["lun", "mar", "mie", "jue", "vie", "sab", "dom"]
 		blacklist = []
 		for i in mat:
 			if i["sem"] != "Semana General" or i["cod"] in blacklist:
@@ -339,11 +344,17 @@ class ScheduleAssistant:
 			horaIn, horaFin = hora.split("-")
 			self.coursesDataDict[i["cod"]]["secciones"][str(i["sec"])]["sesiones"].append({
 				"sesion" : i["ses"],
-				"dia" : dias.index(dia.lower()),
+				"dia" : self.dias.index(dia.lower()),
 				"hora" : int(horaIn.split(":")[0]),
 				"duracion" : int(horaFin.split(":")[0]) - int(horaIn.split(":")[0]),
 				"docente" : i["prof"]
 			})
+		
+		self.log("Ordenando diccionario de cursos...")
+		for courseData in self.coursesDataDict.values():
+			for secData in courseData["secciones"].values():
+				secData["sesiones"] = sorted(secData["sesiones"], key=lambda i : (i["dia"], i["hora"], i["duracion"]))
+			courseData["secciones"] = {str(sec) : courseData["secciones"][sec] for sec in sorted(courseData["secciones"])}
 
 		self.saveJSON()
 		return self.coursesDataDict
@@ -497,17 +508,29 @@ class ScheduleAssistant:
 	
 
 	def printAvailableCourses(self):
+		print()
 		for course, data in self.coursesDataDict.items():
 			print(f"{course} - {data['nombre']} ({len(data['secciones'])} secciones)")
 	
 	def printCourseInfo(self, course):
 		if course not in self.coursesDataDict:
 			return False
-		print(f"Informacion del curso {course}")
-		print(f"Nombre: {self.coursesDataDict[course]['nombre']}")
+		print(f"\n{course} - {self.coursesDataDict[course]['nombre']}")
+		print(f"Secciones ({len(self.coursesDataDict[course]['secciones'])}):")
+		for secNum, secData in self.coursesDataDict[course]["secciones"].items():
+			print(f"  {secNum}) Matriculados: {secData['matriculados']} / {secData['vacantes']}")
+			for ses in secData["sesiones"]:
+				print(f"     + {ses['sesion']}")
+				print(f"       {ses['docente']}")
+				print(f"       {self.dias[ses['dia']].upper()} {str(ses['hora']).zfill(2)}:00–{str(ses['hora'] + ses['duracion']).zfill(2)}:00 ({ses['duracion']}hrs)")
 		return True
-
 	
+	def printCoursesInfo(self, data={}):
+		data = self.coursesDataDict if data == {} else data
+		for course in data:
+			self.printCourseInfo(course)
+			print()
+
 	def filterMenu(self, data={}):
 		op = self.optionIndexSelector([
 			"Filtrar por profesor",
@@ -551,7 +574,10 @@ class ScheduleAssistant:
 		op = 0
 		while op != 3:
 			print()
-			print("-" * 17 + "\n Menu Principal \n" + "-" * 17)
+			print("-" * 17 + "\n Menu Principal\n")
+			print(">>")
+			print(f"  Cursos disponibles para la matricula: {len(self.coursesDataDict)}")
+			print(">>\n")
 
 			op = self.optionIndexSelector([
 				"Mostrar cursos disponibles",
@@ -606,10 +632,6 @@ class ScheduleAssistant:
 			return False
 
 		self.log("")
-		print(f"Se encontraron {len(self.coursesDataDict)} cursos disponibles para la matricula")
-		print("Desea mostrarlos?")
-		if self.boolSelector():
-			self.printAvailableCourses()
 		
 		self.mainMenu()
 
