@@ -123,9 +123,13 @@ class ScheduleAssistant:
 		except:
 			path = os.path.join(os.getcwd(), driver)
 			if not os.path.exists(path):
-				self.error(f"webdriver con nombre {driver} no encontrado en el PATH o en el directorio actual")
+				self.error(f"Webdriver con nombre {driver} no encontrado en el PATH o en el directorio actual")
 				return False
-			self.br = instBr(selBrowser.upper(), path, options)
+			try:
+				self.br = instBr(selBrowser.upper(), path, options)
+			except Exception as e:
+				print(e)
+				self.error("No se pudo inicializar webdriver. Es posible que el webdriver descargado no es el correcto para su sistema operativo y/o version de su browser")
 		return True
 	
 	#
