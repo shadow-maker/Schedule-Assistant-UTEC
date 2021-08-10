@@ -398,9 +398,10 @@ class ScheduleAssistant:
 	# FILTERING FUNCS
 	#
 
-	def filterBy(self, func, allSes=True):
+	def filterBy(self, func, allSes=True, baseData={}):
+		baseData = self.coursesDataDict if baseData == {} else baseData
 		result = {}
-		for code, courseData in self.coursesDataDict.items():
+		for code, courseData in baseData.items():
 			secsFound = {}
 			for secNum, secData in courseData["secciones"].items():
 				sesFound = len([ses for ses in secData["sesiones"] if func(ses)])
@@ -410,17 +411,17 @@ class ScheduleAssistant:
 				result[code] = {"nombre" : courseData["nombre"], "secciones": secsFound}
 		return result
 
-	def filterByProf(self, query=""):
-		return self.filterBy(lambda ses : query.lower() in ses["docente"].lower(), False)
+	def filterByProf(self, query="", baseData={}):
+		return self.filterBy(lambda ses : query.lower() in ses["docente"].lower(), False, baseData)
 
-	def filterByMinBegTime(self, time=0):
-		return self.filterBy(lambda ses : time <= ses["hora"])
+	def filterByMinBegTime(self, time=0, baseData={}):
+		return self.filterBy(lambda ses : time <= ses["hora"], True, baseData)
 
-	def filterByMaxEndTime(self, time=24):
-		return self.filterBy(lambda ses : time >= ses["hora"] + ses["duracion"])
+	def filterByMaxEndTime(self, time=24, baseData={}):
+		return self.filterBy(lambda ses : time >= ses["hora"] + ses["duracion"], True, baseData)
 
-	def filterByDurTime(self, time=2):
-		return self.filterBy(lambda ses : time == ses["duracion"])	
+	def filterByDurTime(self, time=2, baseData={}):
+		return self.filterBy(lambda ses : time == ses["duracion"], True, baseData)	
 	
 	#
 	# UI FUNCS
