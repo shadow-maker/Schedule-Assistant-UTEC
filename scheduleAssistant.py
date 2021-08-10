@@ -606,3 +606,8 @@ class ScheduleAssistant:
 			self.printAvailableCourses()
 		
 		self.mainMenu()
+
+# BEGIN COMMAND
+if __name__ == "__main__":
+	assistant = ScheduleAssistant()
+	assistant.begin()
