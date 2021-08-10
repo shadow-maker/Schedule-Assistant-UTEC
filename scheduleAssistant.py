@@ -244,7 +244,15 @@ class ScheduleAssistant:
 
 		dtChecked = datetime.now()
 
-		fname = os.path.join(self.downDir, "pdf")
+		if not self.waitUntilTrue(lambda : os.path.exists(".down")):
+			return False
+
+		if not self.waitUntilTrue(lambda : len(list(os.walk(".down"))[0][2]) > 0):
+			return False
+		
+		time.sleep(1)
+
+		fname = os.path.join(self.downDir, list(os.walk(".down"))[0][2][0])
 
 		if not self.waitUntilTrue(lambda : os.path.exists(fname)):
 			return False
@@ -347,7 +355,7 @@ class ScheduleAssistant:
 
 	# Checks that every extracted course is valid
 	def validateCoursesData(self):
-		self.log("Validando que no hayan conflictos entre las sesiones de cada seccion de cada curso...")
+		self.log("Validando la data de horarios de cursos disponibles...")
 		return sum([int(not self.validateCourse(c)) for c in self.coursesDataDict]) == 0
 	
 	#
@@ -492,7 +500,7 @@ class ScheduleAssistant:
 		return True
 
 	
-	def filterMenu(self):
+	def filterMenu(self, baseData={}):
 		op = self.optionIndexSelector([
 			"Filtrar por profesor",
 			"Filtrar por hora minima de inicio de la sesion",
