@@ -153,7 +153,8 @@ class ScheduleAssistant:
 			with open(self.csvName, "w") as file:
 				writer = csv.writer(file)
 				for line in data:
-					writer.writerow(line)
+					if len(line) > 0:
+						writer.writerow(line)
 
 	# Saves a Python dictionary as a JSON file
 	def saveJSON(self, data={}):
@@ -281,12 +282,12 @@ class ScheduleAssistant:
 			self.error(f"No se pudo leer tablas del pdf {self.pdfName}. Posiblemente el formato sea el incorrecto")
 
 		self.log("Parse-ando tabla de pdf a matriz de Python...")
-		self.coursesDataTable = [tuple(tables[0].columns)] + list(itertools.chain(*[
-			list(zip(*[[
-				(
-					" ".join(i.replace("\r", " ").replace("\n", " ").split(", ")[::-1]) if type(i) == str else ("" if math.isnan(i) else i)
-				) for i in table[col].to_list()
-			] for col in table])) for table in tables
+		formatCell = lambda cell : " ".join(cell.replace("\r", " ").replace("\n", " ").split(", ")[::-1]) if type(cell) == str else ("" if math.isnan(cell) else int(cell))
+		self.coursesDataTable = list(itertools.chain(*[
+			[tuple(formatCell(i) for i in table.columns)]
+			+
+			list(zip(*[[formatCell(i) for i in table[col].to_list()] for col in table]))
+			for table in tables
 		]))
 
 		self.saveCSV()
@@ -295,7 +296,7 @@ class ScheduleAssistant:
 	# Parses the schedule data table into a Python dictionary
 	def tableToDict(self):
 		self.log("Parse-ando matriz a diccionario de cursos...")
-		keys = ("cod", "nom", "prof", "malla", "tipo", "mod", "sec", "ses", "hora", "tipo", "ubic", "vac", "mat")
+		keys = ("cod", "nom", "prof", "malla", "tipo", "mod", "sec", "ses", "hora", "sem", "ubic", "vac", "mat")
 		mat = [dict(zip(keys, i)) for i in self.coursesDataTable[1:]]
 
 		self.coursesDataDict = {}
@@ -303,24 +304,24 @@ class ScheduleAssistant:
 		dias = ["lun", "mar", "mie", "jue", "vie", "sab", "dom"]
 		blacklist = []
 		for i in mat:
-			if i["tipo"] != "Semana General" or i["cod"] in blacklist:
+			if i["sem"] != "Semana General" or i["cod"] in blacklist:
 				blacklist.append(i["cod"])
 				continue
 			if i["cod"] not in self.coursesDataDict:
 				self.coursesDataDict[i["cod"]] = {
 					"nombre": i["nom"],
-					#"malla": i["malla"],
+					"malla": i["malla"],
 					"secciones": {}
 				}
-			if i["sec"] not in self.coursesDataDict[i["cod"]]["secciones"]:
-				self.coursesDataDict[i["cod"]]["secciones"][i["sec"]] = {
-					"vacantes": i["vac"],
-					"matriculados": i["mat"],
+			if str(i["sec"]) not in self.coursesDataDict[i["cod"]]["secciones"]:
+				self.coursesDataDict[i["cod"]]["secciones"][str(i["sec"])] = {
+					"vacantes": int("0" + str(i["vac"])),
+					"matriculados": int("0" + str(i["mat"])),
 					"sesiones": []
 				}
 			dia, hora = i["hora"].replace(" ", "").split(".")
 			horaIn, horaFin = hora.split("-")
-			self.coursesDataDict[i["cod"]]["secciones"][i["sec"]]["sesiones"].append({
+			self.coursesDataDict[i["cod"]]["secciones"][str(i["sec"])]["sesiones"].append({
 				"sesion" : i["ses"],
 				"dia" : dias.index(dia.lower()),
 				"hora" : int(horaIn.split(":")[0]),
