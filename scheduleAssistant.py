@@ -426,7 +426,15 @@ class ScheduleAssistant:
 	# UI FUNCS
 	#
 
-	def optionSelector(self, options):
+	def optionValueSelector(self, options):
+		print("Selecciona una opcion:")
+		print("\n".join([f"[{i}]" for i in options]))
+		selection = ""
+		while selection not in options:
+			selection = input(">")
+		return selection
+
+	def optionIndexSelector(self, options):
 		print("Selecciona una opcion:")
 		print("\n".join([f"[{i + 1}] {options[i]}" for i in range(len(options))]))
 		selection = ""
@@ -474,7 +482,51 @@ class ScheduleAssistant:
 	def printAvailableCourses(self):
 		for course, data in self.coursesDataDict.items():
 			print(f"{course} - {data['nombre']} ({len(data['secciones'])} secciones)")
+	
+	def printCourseInfo(self, course):
+		if course not in self.coursesDataDict:
+			return False
+		print(f"Informacion del curso {course}")
+		print(f"Nombre: {self.coursesDataDict[course]['nombre']}")
+		return True
 
+	
+	def filterMenu(self):
+		op = self.optionIndexSelector([
+			"Filtrar por profesor",
+			"Filtrar por hora minima de inicio de la sesion",
+			"Filtrar por hora maxima de fin de la sesion",
+			"Filtrar por hora de duracion de la sesion"
+		])
+
+		if op == 0:
+			pass
+		elif op == 1:
+			pass
+		elif op == 2:
+			pass
+		elif op == 3:
+			pass
+	
+	def mainMenu(self):
+		op = 0
+		while op != 3:
+			print()
+			print("-" * 17 + "\n Menu Principal \n" + "-" * 17)
+
+			op = self.optionIndexSelector([
+				"Mostrar cursos disponibles",
+				"Mostrar informacion de un curso",
+				"Filtrar cursos",
+				"Salir"
+			])
+
+			if op == 0:
+				self.printAvailableCourses()
+			elif op == 1:
+				self.printCourseInfo(self.optionValueSelector(list(self.coursesDataDict.keys())))
+			elif op == 2:
+				self.filterMenu()
 	
 	def begin(self):
 		exists = dict(zip(["PDF", "CSV", "JSON"], [os.path.exists(i) for i in [self.pdfName, self.csvName, self.jsonName]]))
@@ -483,7 +535,7 @@ class ScheduleAssistant:
 		if len(existent) > 0:
 			print(f"Se encontraron archivos {', '.join(existent)} con la data de horarios de los cursos disponibles")
 			print("Desea...")
-			op = self.optionSelector([f"Cargar data desde archivo {i}" for i in existent] + ["Volver a descargar pdf de horarios de los cursos disponibles"])
+			op = self.optionIndexSelector([f"Cargar data desde archivo {i}" for i in existent] + ["Volver a descargar pdf de horarios de los cursos disponibles"])
 			if op == len(existent):
 				if not self.downloadPDF():
 					return False
@@ -518,3 +570,5 @@ class ScheduleAssistant:
 		print("Desea mostrarlos?")
 		if self.boolSelector():
 			self.printAvailableCourses()
+		
+		self.mainMenu()
