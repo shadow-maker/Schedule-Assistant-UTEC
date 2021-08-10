@@ -512,12 +512,13 @@ class ScheduleAssistant:
 		for course, data in self.coursesDataDict.items():
 			print(f"{course} - {data['nombre']} ({len(data['secciones'])} secciones)")
 	
-	def printCourseInfo(self, course):
+	def printCourseInfo(self, course, secs={}):
 		if course not in self.coursesDataDict:
 			return False
 		print(f"\n{course} - {self.coursesDataDict[course]['nombre']}")
-		print(f"Secciones ({len(self.coursesDataDict[course]['secciones'])}):")
-		for secNum, secData in self.coursesDataDict[course]["secciones"].items():
+		secs = self.coursesDataDict[course]["secciones"] if secs == {} else secs
+		print(f"Secciones ({len(secs)}):")
+		for secNum, secData in secs.items():
 			print(f"  {secNum}) Matriculados: {secData['matriculados']} / {secData['vacantes']}")
 			for ses in secData["sesiones"]:
 				print(f"     + {ses['sesion']}")
@@ -528,21 +529,22 @@ class ScheduleAssistant:
 	def printCoursesInfo(self, data={}):
 		data = self.coursesDataDict if data == {} else data
 		for course in data:
-			self.printCourseInfo(course)
+			self.printCourseInfo(course, data[course]["secciones"])
 			print()
 
 	def filterMenu(self, data={}):
+		print("\nFILTRAR CURSOS")
 		op = self.optionIndexSelector([
 			"Filtrar por profesor",
-			"Filtrar por hora minima de inicio de la sesion",
-			"Filtrar por hora maxima de fin de la sesion",
+			"Filtrar por hora minima de inicio de las sesiones",
+			"Filtrar por hora maxima de fin de las sesiones",
 			"Filtrar por hora de duracion de la sesion"
 		])
 
 		if op == 0:
 			data = self.filterByProf(input("Ingrese profesor a buscar:\n>"), data)
 		elif op == 1:
-			print("Ingrese la hora minima de inicio de la sesion:")
+			print("Ingrese la hora minima de inicio de las sesiones:")
 			time = -1
 			while time < 0 or time > 23:
 				try:
@@ -551,7 +553,7 @@ class ScheduleAssistant:
 					continue
 			data = self.filterByMinBegTime(time, data)
 		elif op == 2:
-			print("Ingrese la hora maxima de fin de la sesion:")
+			print("Ingrese la hora maxima de fin de las sesiones:")
 			time = -1
 			while time < 0 or time > 23:
 				try:
@@ -568,6 +570,24 @@ class ScheduleAssistant:
 				except:
 					continue
 			data = self.filterByDurTime(time, data)
+		
+		secsFound = sum([len(data[course]["secciones"]) for course in data])
+		print(f"\nSe encontraron {secsFound} secciones en {len(data)} cursos")
+		print("Que desea hacer con la informacion filtrada:")
+
+		op = 0
+		while op == 0:
+			op = self.optionIndexSelector([
+				"Mostrar informacion de los cursos filtrados",
+				"Aplicar un nuevo filtro",
+				"Salir"
+			])
+
+			if op == 0:
+				self.printCoursesInfo(data)
+			elif op == 1:
+				return self.filterMenu(data)
+
 		return data
 	
 	def mainMenu(self):
