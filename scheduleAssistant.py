@@ -563,7 +563,7 @@ class ScheduleAssistant:
 				self.filterMenu()
 	
 	def begin(self):
-		exists = dict(zip(["PDF", "CSV", "JSON"], [os.path.exists(i) for i in [self.pdfName, self.csvName, self.jsonName]]))
+		exists = dict(zip(["JSON", "CSV", "PDF"], [os.path.exists(i) for i in [self.jsonName, self.csvName, self.pdfName]]))
 		existent = [i for i in exists if exists[i]]
 
 		if len(existent) > 0:
