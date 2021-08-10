@@ -142,7 +142,7 @@ class ScheduleAssistant:
 	
 	# Prints error messages
 	def error(self, msg):
-		print("\nERROR: " + msg)
+		print("\n---\nERROR: " + msg)
 	
 	#
 	# SAVE FILE FUNCS
@@ -289,7 +289,8 @@ class ScheduleAssistant:
 		self.log("Leyendo tablas del pdf...")
 		try:
 			tables = read_pdf(self.pdfName, pages="all")
-		except:
+		except Exception as e:
+			print(e)
 			self.error(f"No se pudo leer tablas del pdf {self.pdfName}. Posiblemente el formato sea el incorrecto")
 
 		self.log("Parse-ando tabla de pdf a matriz de Python...")
@@ -587,7 +588,8 @@ class ScheduleAssistant:
 				with open(self.jsonName, "r") as file:
 					try:
 						self.coursesDataDict = json.load(file)
-					except:
+					except Exception as e:
+						print(e)
 						self.error(f"No se pudo leer archivo JSON {self.jsonName}")
 						return False
 			self.log("")
